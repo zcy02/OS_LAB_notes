@@ -1,0 +1,292 @@
+# 启动计算机
+![[Pasted image 20230310155705.png]]
+- 0xF0000~0xFFFFF 64KB的BIOS代码 （映射由硬件完成）入口地址为0xFFFF0
+- 接电时CS：IP初始化为0xF000：0xFFF0对应上述入口地址
+![[Pasted image 20230310161056.png]]
+- 跳转到0xFE05B继续执行BIOS代码
+- 接下来BIOS的工作：检测外设信息、在内存0x000~0x3FF建立IVT的数据结构，填写中断例程
+- BIOS最后一项工作：校验启动盘中0盘0道1扇区（CHS：Cylinder、Header、Sector）的内容，若末尾为0x55和0xAA，则认为存在MBR （Main/Master Boot Record主引导扇区记录），跳转到0x7C00（DOS1.0最小内存32KB-1KB（512B+栈区预留））
+# 简单的MBR示例
+- 目的：清屏后打印字符串“HELLO MBR!”，文字为红色且闪烁，背景白色
+```
+SECTION MBR vstart=0x7c00 ;起始地址编译在0x7c00
+    mov ax,cs
+    mov ds,ax
+    mov es,ax
+    mov ss,ax
+    mov fs,ax
+    mov sp,0x7c00
+    ;BIOS通过jmp0:0x07c00跳转，cs为0，利用ax间接赋值ds = es = ss = 0 
+    ;栈指针指向MBR开始位置
+
+    ;ah = 0x06 al = 0x00  功能号06完成清屏功能
+    ;cx dx 分别存储左上角与右下角的左边
+    mov ax,0x600 ;子功能号
+    mov bx,0x700
+    mov cx,0
+    mov dx,0x184f ;窗口位置
+    int 0x10 ;调用BIOS中断，清屏
+
+    mov ah,3 ;3号子功能获取光标位置
+    mov bh,0 ;在第0页
+    int 0x10 ;调用BIOS中断，获取光标位置
+    
+    mov ax,message
+    mov bp,ax
+    
+    mov cx,10 ;串长度
+    mov ax,0x1301 ;ah为子功能13，al设置写字符方式01
+    mov bx,0xF4 ;bh为页号，bl为属性
+    int 0x10 ;写字符串
+    		
+    jmp $ ;无限循环 悬停
+    
+    ;字符串声明 db == define byte dw == define word ascii一个字符占一个字节
+    message db "HELLO MBR!" 
+    
+    ;预留两个字节 其余空余的全部用0填满
+    ;510 = 512字节-2预留字节  再减去（当前位置偏移量-段开始位置偏移量）求出来的是剩余空间
+    times 510 - ($ - $$) db 0 
+    db 0x55,0xaa
+```
+关于BIOS int 0x10：[BIOS INT 10中断功能详解](https://www.techbulo.com/573.html)
+- 编译后利用dd写入磁盘
+NAME
+       dd - convert and copy a file
+SYNOPSIS
+       dd \[OPERAND\]...
+       dd OPTION
+DESCRIPTION
+	Copy a file, converting and formatting according to the operands.
+	bs=BYTES
+    read and write up to BYTES bytes at a time (default: 512); overrides ibs and obs
+	cbs=BYTES
+    convert BYTES bytes at a time
+	conv=CONVS
+    convert the file as per the comma separated symbol list
+	count=N
+    copy only N input blocks
+	ibs=BYTES
+    read up to BYTES bytes at a time (default: 512)
+	if=FILE
+    read from FILE instead of stdin
+![[Pasted image 20230310172805.png]]
+- 为什么设置vstart = 0x7C00
+	已知BIOS会将MBR加载到该地址
+	[[NASM相关#vstart=xxx修饰]]
+# 实模式 Real Mode
+由于80286CPU的性能有限，一共只有20位地址线（所以地址空间只有1MB），以及8个16位的通用寄存器，以及4个16位的段寄存器。
+## 段寄存器
+![[Pasted image 20230312004850.png]]
+## 通用寄存器
+![[Pasted image 20230312005222.png]]
+![[Pasted image 20230312005244.png]]
+## 实模式下内存分段
+段基址左移4位变为20位 + 段内偏移地址
+最大地址为0xFFFF0+0xFFFF = 0x10FFEF = 1MB+64KB-16B，超出部分回卷（HMA）
+# MBR改进
+直接操作显卡，改进MBR。
+![[Pasted image 20230315151541.png]]
+实模式下内存布局，显存部分如上所示
+显存是从 0xB8000 到 0xBFFFF，范围是 32KB，一屏可以显示 2000 个字符，显示器上的每个字符占 2 字节大小，每屏字符实际占用 4000 字节，共容纳8屏。
+屏幕上低字节是ASCII码，高字节是字符属性元信息（颜色、背景等）
+```
+SECTION MBR vstart=0x7c00 ;起始地址编译在0x7c00
+    mov ax, cs
+    mov ds, ax
+    mov es, ax
+    mov ss, ax
+    mov fs, ax
+    mov sp, 0x7c00
+    mov ax, 0xb800 ;文本模式显示适配器内存地址起始0xb8000
+    mov gs, ax ; 存入GS作为段基址
+
+    ;BIOS通过jmp0:0x07c00跳转，cs为0，利用ax间接赋值ds = es = ss = 0 
+    ;栈指针指向MBR开始位置
+
+    ;ah = 0x06 al = 0x00 调用int 0x06的BIOS提供的中断对应的函数完成清屏功能
+    ;cx dx 分别存储左上角与右下角的左边
+    mov ax,0x600 ;子功能号
+    mov bx,0x700
+    mov cx,0
+    mov dx,0x184f ;窗口位置
+    int 0x10 ;调用BIOS中断，清屏
+
+    mov byte [gs:0x00], 'H' 
+    ; 把字符 H 的 ASCII 码写入以 gs：0x00 为起始，大小为1字节的内存中
+    mov byte [gs:0x01], 0xf4
+    mov byte [gs:0x02], 'e'
+    mov byte [gs:0x03], 0xf4
+    mov byte [gs:0x04], 'l'
+    mov byte [gs:0x05], 0xf4
+    mov byte [gs:0x06], 'l'
+    mov byte [gs:0x07], 0xf4
+    mov byte [gs:0x08], 'o'
+    mov byte [gs:0x09], 0xf4
+    mov byte [gs:0x0a], ' '
+    mov byte [gs:0x0b], 0xf4
+    mov byte [gs:0x0c], 'M'
+    mov byte [gs:0x0d], 0xf4
+    mov byte [gs:0x0e], 'B'
+    mov byte [gs:0x0f], 0xf4
+    mov byte [gs:0x10], 'R'
+    mov byte [gs:0x11], 0xf4
+    		
+    jmp $ ;无限循环 悬停
+    
+    ;预留两个字节 其余空余的全部用0填满 为使检测当前扇区最后两字节为0x55 0xaa 检测是否为有效扇区
+    ;510 = 512字节-2预留字节  再减去（当前位置偏移量-段开始位置偏移量）求出来的是剩余空间
+    times 510 - ($ - $$) db 0 
+    db 0x55,0xaa
+
+```
+![[Pasted image 20230315152228.png]]
+
+# MBR 再改进
+主要内容：从硬盘读取loader，加载到内存0x900
+## boot.inc
+```
+; 从硬盘 2 扇区拿loader，放到内存 0x900 开始
+LOADER_BASE_ADDR equ 0x900
+LOADER_START_SECTOR equ 0x2
+```
+## mbr_1.asm
+```
+%include "boot.inc"
+SECTION MBR vstart=0x7c00 ;起始地址编译在0x7c00
+    mov ax, cs
+    mov ds, ax
+    mov es, ax
+    mov ss, ax
+    mov fs, ax
+    mov sp, 0x7c00
+    mov ax, 0xb800 ;文本模式显示适配器内存地址起始0xb8000
+    mov gs, ax ; 存入GS作为段基址
+
+    ;BIOS通过jmp0:0x07c00跳转，cs为0，利用ax间接赋值ds = es = ss = 0 
+    ;栈指针指向MBR开始位置
+
+    ;ah = 0x06 al = 0x00 调用int 0x06的BIOS提供的中断对应的函数完成清屏功能
+    ;cx dx 分别存储左上角与右下角的左边
+    mov ax,0x600 ;子功能号
+    mov bx,0x700
+    mov cx,0
+    mov dx,0x184f ;窗口位置
+    int 0x10 ;调用BIOS中断，清屏
+
+    mov byte [gs:0x00], 'H'
+    mov byte [gs:0x01], 0xf4
+    mov byte [gs:0x02], 'e'
+    mov byte [gs:0x03], 0xf4
+    mov byte [gs:0x04], 'l'
+    mov byte [gs:0x05], 0xf4
+    mov byte [gs:0x06], 'l'
+    mov byte [gs:0x07], 0xf4
+    mov byte [gs:0x08], 'o'
+    mov byte [gs:0x09], 0xf4
+    mov byte [gs:0x0a], ' '
+    mov byte [gs:0x0b], 0xf4
+    mov byte [gs:0x0c], 'M'
+    mov byte [gs:0x0d], 0xf4
+    mov byte [gs:0x0e], 'B'
+    mov byte [gs:0x0f], 0xf4
+    mov byte [gs:0x10], 'R'
+    mov byte [gs:0x11], 0xf4
+    		
+    mov eax, LOADER_START_SECTOR    ; 起始扇区LBA地址
+    mov bx, LOADER_BASE_ADDR
+    mov cx, 1
+    call read_disk_m_16
+    jmp LOADER_BASE_ADDR
+
+read_disk_m_16:
+    mov esi, eax    ;out要用到al，备份到esi
+    mov di, cx  ;读取数据用到cx，备份
+    ; 设置Sector count
+    mov dx, 0x1f2
+    mov al, cl
+    out dx, al
+    mov eax, esi
+    ; 设置LBA地址
+    mov dx, 0x1f3
+    out dx, al  ; 0-7位 对应 al
+
+    mov cl, 8
+    shr eax, cl ; 右移8位，al 此时对应 8-15位
+    mov dx, 0x1f4
+    out dx, al
+
+    shr eax, cl ; 再右移8位， al 此时对应 16-23位
+    mov dx, 0x1f5
+    out dx, al
+
+    shr eax, cl ; 右移8位
+    and al, 0x0f    ; mask 取al低四位，此时对应 24-27位
+    or al, 0xe0    ; 高四位设置 1110，LBA模式、主盘
+    mov dx, 0x1f6
+    out dx, al
+
+    ; 读硬盘命令
+    mov dx, 0x1f7   ; command reg
+    mov al, 0x20    ; 0x20 read sector
+    out dx, al
+
+    .not_ready:
+        nop
+        in al, dx   ; 读 0x1f7 时为 status reg
+        and al, 0x88    ; mask 取7、3位（BYS 和 DRQ）
+        cmp al, 0x08    ; 第3位为1表示硬盘控制器已准备好数据传输
+        jnz .not_ready
+
+        ; 从Data reg读数据
+        
+        mov ax, di  ; 扇区数
+        mov dx, 256 ; 每个扇区 512B，每次读 2B，每个扇区 256 次
+        mul dx  ; dx 乘以 ax，结果低16位放入 ax，高16位在 dx
+        mov cx, ax  ; 读盘次数存入 loop 计数器 cx 中
+        mov dx, 0x1f0
+    .read:
+        in ax, dx   ; 读硬盘
+        mov [bx], ax    ; 向内存 0x900 传送数据
+        add bx, 2   ; 每次两字节
+        loop .read  ; cx 作为计数器
+        ret
+    times 510 - ($ - $$) db 0 
+    db 0x55,0xaa
+
+```
+## 对于read_disk_m_16的一些解释
+in、out指令参考：[[端口读写]]
+### in、out具体参数的意义
+端口寄存器定义：[[硬盘控制器端口及命令]]
+读硬盘命令格式：
+![[Pasted image 20230317170440.png]]
+## loader.asm
+非实际loader，仅作显示字符演示，证明加载成功。
+```
+%include "boot.inc"
+section loader vstart=LOADER_BASE_ADDR
+mov byte [gs:0x00], 'I'
+mov byte [gs:0x01], 0xf4
+mov byte [gs:0x02], "'"
+mov byte [gs:0x03], 0xf4
+mov byte [gs:0x04], 'm'
+mov byte [gs:0x05], 0xf4
+mov byte [gs:0x06], ' '
+mov byte [gs:0x07], 0xf4
+mov byte [gs:0x08], 'L'
+mov byte [gs:0x09], 0xf4
+mov byte [gs:0x0a], 'O'
+mov byte [gs:0x0b], 0xf4
+mov byte [gs:0x0c], 'A'
+mov byte [gs:0x0d], 0xf4
+mov byte [gs:0x0e], 'D'
+mov byte [gs:0x0f], 0xf4
+mov byte [gs:0x10], 'E'
+mov byte [gs:0x11], 0xf4
+mov byte [gs:0x12], 'R'
+mov byte [gs:0x13], 0xf4
+
+jmp $
+```
+![[Pasted image 20230317150521.png]]

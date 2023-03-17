@@ -1,0 +1,208 @@
+{
+  "main": {
+    "id": "254249653676ba78",
+    "type": "split",
+    "children": [
+      {
+        "id": "590f60861d7343eb",
+        "type": "split",
+        "children": [
+          {
+            "id": "edcb3083a7e5fb0d",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "69a62f7a285f1fdd",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "OS LAB/设计文档.md",
+                    "mode": "source",
+                    "source": false
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "2d3dd82b9f376ad7",
+            "type": "tabs",
+            "children": [
+              {
+                "id": "0f206d10a26b60ff",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "OS LAB/设计文档.md",
+                    "mode": "source",
+                    "source": false
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "horizontal"
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "1b91f3575b787bd8",
+    "type": "split",
+    "children": [
+      {
+        "id": "fd69516ae4b81bee",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1012dbc55e2ed678",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "b119478f85c2be53",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "ef32b08361738aaa",
+            "type": "leaf",
+            "state": {
+              "type": "starred",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200
+  },
+  "right": {
+    "id": "4ddc0993d2cd68ec",
+    "type": "split",
+    "children": [
+      {
+        "id": "38b9a316c06c88ab",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d6b9216724c5752c",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "OS LAB/设计文档.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "7841db8a20f6da1a",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "OS LAB/设计文档.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "82be19f131af15b5",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              }
+            }
+          },
+          {
+            "id": "097501d8d0395b78",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "OS LAB/设计文档.md"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false
+    }
+  },
+  "active": "1012dbc55e2ed678",
+  "lastOpenFiles": [
+    "OS LAB/NASM相关.md",
+    "OS LAB/bochs调试.md",
+    "OS LAB/硬盘控制器端口及命令.md",
+    "OS LAB/设计文档.md",
+    "OS LAB/启动过程&MBR编写.md",
+    "OS LAB/端口读写.md",
+    "OS LAB/实模式下寻址方式.md",
+    "OS LAB/attachments/Pasted image 20230317170440.png",
+    "OS LAB/attachments/AT_Attachment_with_Packet_Interface_-_7_Volume_1.pdf",
+    "OS LAB/attachments/Pasted image 20230317150521.png",
+    "大数据基础/实验报告1.1-1.2.md",
+    "大数据基础/实验1.2.md",
+    "大数据基础/attachments/Pasted image 20230315235419.png",
+    "大数据基础/实验1.1.md",
+    "大数据基础/attachments/Pasted image 20230314200826.png",
+    "OS LAB/attachments/Pasted image 20230315161302.png",
+    "attachments",
+    "OS LAB/attachments/Pasted image 20230315152228.png",
+    "OS LAB/attachments/Pasted image 20230315151541.png",
+    "大数据基础/attachments/Pasted image 20230315031225.png",
+    "大数据基础/attachments/Pasted image 20230315031033.png",
+    "大数据基础/attachments/Pasted image 20230315030943.png",
+    "大数据基础/attachments",
+    "大数据基础",
+    "test.md",
+    "计算机系统结构/计算机系统结构.pdf - 快捷方式.lnk",
+    "未命名 1.md",
+    "计算机系统结构/未命名.canvas",
+    "计算机系统结构",
+    "OS LAB/attachments",
+    "OS LAB"
+  ]
+}

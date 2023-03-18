@@ -1,13 +1,18 @@
 # 启动计算机
-![[Pasted image 20230310155705.png]]
+
+![](attachments/Pasted%20image%2020230310155705.png)
+
 - 0xF0000~0xFFFFF 64KB的BIOS代码 （映射由硬件完成）入口地址为0xFFFF0
 - 接电时CS：IP初始化为0xF000：0xFFF0对应上述入口地址
-![[Pasted image 20230310161056.png]]
+![](attachments/Pasted%20image%2020230310161056.png)
 - 跳转到0xFE05B继续执行BIOS代码
 - 接下来BIOS的工作：检测外设信息、在内存0x000~0x3FF建立IVT的数据结构，填写中断例程
 - BIOS最后一项工作：校验启动盘中0盘0道1扇区（CHS：Cylinder、Header、Sector）的内容，若末尾为0x55和0xAA，则认为存在MBR （Main/Master Boot Record主引导扇区记录），跳转到0x7C00（DOS1.0最小内存32KB-1KB（512B+栈区预留））
+
 # 简单的MBR示例
+
 - 目的：清屏后打印字符串“HELLO MBR!”，文字为红色且闪烁，背景白色
+
 ```
 SECTION MBR vstart=0x7c00 ;起始地址编译在0x7c00
     mov ax,cs
@@ -38,7 +43,7 @@ SECTION MBR vstart=0x7c00 ;起始地址编译在0x7c00
     mov ax,0x1301 ;ah为子功能13，al设置写字符方式01
     mov bx,0xF4 ;bh为页号，bl为属性
     int 0x10 ;写字符串
-    		
+      
     jmp $ ;无限循环 悬停
     
     ;字符串声明 db == define byte dw == define word ascii一个字符占一个字节
@@ -49,47 +54,65 @@ SECTION MBR vstart=0x7c00 ;起始地址编译在0x7c00
     times 510 - ($ - $$) db 0 
     db 0x55,0xaa
 ```
+
 关于BIOS int 0x10：[BIOS INT 10中断功能详解](https://www.techbulo.com/573.html)
+
 - 编译后利用dd写入磁盘
+
+```
 NAME
        dd - convert and copy a file
 SYNOPSIS
        dd \[OPERAND\]...
        dd OPTION
 DESCRIPTION
-	Copy a file, converting and formatting according to the operands.
-	bs=BYTES
+ Copy a file, converting and formatting according to the operands.
+ bs=BYTES
     read and write up to BYTES bytes at a time (default: 512); overrides ibs and obs
-	cbs=BYTES
+ cbs=BYTES
     convert BYTES bytes at a time
-	conv=CONVS
+ conv=CONVS
     convert the file as per the comma separated symbol list
-	count=N
+ count=N
     copy only N input blocks
-	ibs=BYTES
+ ibs=BYTES
     read up to BYTES bytes at a time (default: 512)
-	if=FILE
+ if=FILE
     read from FILE instead of stdin
-![[Pasted image 20230310172805.png]]
+```
+
+![](attachments/Pasted%20image%2020230310172805.png)
+
 - 为什么设置vstart = 0x7C00
-	已知BIOS会将MBR加载到该地址
-	[[NASM相关#vstart=xxx修饰]]
+已知BIOS会将MBR加载到该地址时使用vstart
+[[NASM相关#vstart=xxx修饰|vstart修饰]]
+
 # 实模式 Real Mode
+
 由于80286CPU的性能有限，一共只有20位地址线（所以地址空间只有1MB），以及8个16位的通用寄存器，以及4个16位的段寄存器。
+
 ## 段寄存器
-![[Pasted image 20230312004850.png]]
+
+![](attachments/Pasted%20image%2020230312004850.png)
+
 ## 通用寄存器
-![[Pasted image 20230312005222.png]]
-![[Pasted image 20230312005244.png]]
+
+![](attachments/Pasted%20image%2020230312005222.png)
+![](attachments/Pasted%20image%2020230312005244.png)
+
 ## 实模式下内存分段
+
 段基址左移4位变为20位 + 段内偏移地址
 最大地址为0xFFFF0+0xFFFF = 0x10FFEF = 1MB+64KB-16B，超出部分回卷（HMA）
+
 # MBR改进
+
 直接操作显卡，改进MBR。
-![[Pasted image 20230315151541.png]]
+![](attachments/Pasted%20image%2020230315151541.png)
 实模式下内存布局，显存部分如上所示
 显存是从 0xB8000 到 0xBFFFF，范围是 32KB，一屏可以显示 2000 个字符，显示器上的每个字符占 2 字节大小，每屏字符实际占用 4000 字节，共容纳8屏。
 屏幕上低字节是ASCII码，高字节是字符属性元信息（颜色、背景等）
+
 ```
 SECTION MBR vstart=0x7c00 ;起始地址编译在0x7c00
     mov ax, cs
@@ -131,7 +154,7 @@ SECTION MBR vstart=0x7c00 ;起始地址编译在0x7c00
     mov byte [gs:0x0f], 0xf4
     mov byte [gs:0x10], 'R'
     mov byte [gs:0x11], 0xf4
-    		
+      
     jmp $ ;无限循环 悬停
     
     ;预留两个字节 其余空余的全部用0填满 为使检测当前扇区最后两字节为0x55 0xaa 检测是否为有效扇区
@@ -140,17 +163,23 @@ SECTION MBR vstart=0x7c00 ;起始地址编译在0x7c00
     db 0x55,0xaa
 
 ```
-![[Pasted image 20230315152228.png]]
+
+![](attachments/Pasted%20image%2020230315152228.png)
 
 # MBR 再改进
+
 主要内容：从硬盘读取loader，加载到内存0x900
+
 ## boot.inc
+
 ```
 ; 从硬盘 2 扇区拿loader，放到内存 0x900 开始
 LOADER_BASE_ADDR equ 0x900
 LOADER_START_SECTOR equ 0x2
 ```
+
 ## mbr_1.asm
+
 ```
 %include "boot.inc"
 SECTION MBR vstart=0x7c00 ;起始地址编译在0x7c00
@@ -192,7 +221,7 @@ SECTION MBR vstart=0x7c00 ;起始地址编译在0x7c00
     mov byte [gs:0x0f], 0xf4
     mov byte [gs:0x10], 'R'
     mov byte [gs:0x11], 0xf4
-    		
+      
     mov eax, LOADER_START_SECTOR    ; 起始扇区LBA地址
     mov bx, LOADER_BASE_ADDR
     mov cx, 1
@@ -255,14 +284,21 @@ read_disk_m_16:
     db 0x55,0xaa
 
 ```
+
 ## 对于read_disk_m_16的一些解释
+
 in、out指令参考：[[端口读写]]
+
 ### in、out具体参数的意义
+
 端口寄存器定义：[[硬盘控制器端口及命令]]
 读硬盘命令格式：
-![[Pasted image 20230317170440.png]]
+![](attachments/Pasted%20image%2020230317170440.png)
+
 ## loader.asm
+
 非实际loader，仅作显示字符演示，证明加载成功。
+
 ```
 %include "boot.inc"
 section loader vstart=LOADER_BASE_ADDR
@@ -289,4 +325,5 @@ mov byte [gs:0x13], 0xf4
 
 jmp $
 ```
-![[Pasted image 20230317150521.png]]
+
+![](attachments/Pasted%20image%2020230317150521.png)

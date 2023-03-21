@@ -1,3 +1,3 @@
-# Headline
+# 操作系统课程设计 笔记库
 
-> An awesome project.
+> 读书笔记 & 操作系统设计过程中的心得
